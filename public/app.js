@@ -56,6 +56,9 @@ function enterGame(code) {
 // ---- 侧栏开关 ----
 $("btnPhone").onclick = () => $("sidebar").classList.toggle("hidden");
 $("closeSidebar").onclick = () => $("sidebar").classList.add("hidden");
+$("btnRefresh").onclick = () => {
+  if (myCode) socket.emit("refreshRoom", { code: myCode });
+};
 
 // ---- 房主设置 ----
 $("apiTemp").oninput = (e) => ($("tempVal").textContent = e.target.value);
@@ -76,7 +79,19 @@ $("btnSaveCfg").onclick = () => {
     api: { baseUrl, key, model, temperature: parseFloat($("apiTemp").value) },
     systemPrompt: $("sysPrompt").value,
   });
-  flash($("btnSaveCfg"), "♡ 已保存");
+  flash($("btnSaveCfg"), "♡ 保存中...");
+  // 保存后等一下刷新,显示实际 hasApi 状态
+  setTimeout(() => {
+    socket.emit("refreshRoom", { code: myCode });
+    setTimeout(() => {
+      if (room && room.hasApi) {
+        flash($("btnSaveCfg"), "✓ 已生效");
+      } else {
+        flash($("btnSaveCfg"), "✗ 未生效");
+        alert("保存未生效!可能原因:\n1. 三个框没填齐\n2. 你不是房主\n3. 房间码错了\n点右上刷新按钮重试。");
+      }
+    }, 200);
+  }, 300);
 };
 
 $("btnStart").onclick = () => {
@@ -128,6 +143,7 @@ socket.on("room", (r) => {
 });
 
 socket.on("errorMsg", (m) => addSys("⚠️ " + m));
+socket.on("sysMsg", (m) => addSys("✦ " + m));
 
 // 新加入者补历史
 socket.on("historyDump", (history, round) => {

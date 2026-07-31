@@ -283,6 +283,7 @@ io.on("connection", (socket) => {
     joinedCode = code;
     socket.join(code);
     cb && cb({ ok: true, code });
+    io.to(code).emit("sysMsg", `${name || "玩家"} 加入了房间`);
     // 新玩家补发已有剧情
     if (room.history.length) {
       socket.emit("historyDump", room.history, room.round);
@@ -350,6 +351,13 @@ io.on("connection", (socket) => {
       socket.emit("errorMsg", "模板生成失败: " + e.message);
       socket.emit("tplStatus", "失败");
     }
+  });
+
+  // 玩家请求刷新房间状态(手动同步)
+  socket.on("refreshRoom", ({ code }) => {
+    const room = rooms[code];
+    if (!room) return socket.emit("errorMsg", "房间不存在或已关闭");
+    broadcastRoom(room);
   });
 
   // 玩家更新自己的角色设定
