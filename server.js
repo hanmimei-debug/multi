@@ -52,6 +52,7 @@ function publicRoom(room) {
       action: p.submitted ? p.action : "",
       items: p.items || [],
       status: p.status || [],
+      connected: p.connected !== false,
     })),
     reactions: room.reactions || [],
   };
@@ -239,7 +240,7 @@ async function extractItems(room, story) {
 io.on("connection", (socket) => {
   let joinedCode = null;
 
-  socket.on("createRoom", ({ name }, cb) => {
+  socket.on("createRoom", ({ name, clientId }, cb) => {
     const code = genCode();
     rooms[code] = {
       code,
@@ -256,11 +257,13 @@ io.on("connection", (socket) => {
     };
     rooms[code].players[socket.id] = {
       name: name || "房主",
+      clientId: clientId || socket.id,
       character: "",
       submitted: false,
       action: "",
       items: [],
       status: [],
+      connected: true,
     };
     joinedCode = code;
     socket.join(code);
@@ -268,17 +271,19 @@ io.on("connection", (socket) => {
     broadcastRoom(rooms[code]);
   });
 
-  socket.on("joinRoom", ({ code, name }, cb) => {
+  socket.on("joinRoom", ({ code, name, clientId }, cb) => {
     code = (code || "").toUpperCase().trim();
     const room = rooms[code];
     if (!room) return cb && cb({ ok: false, error: "房间不存在" });
     room.players[socket.id] = {
       name: name || "玩家",
+      clientId: clientId || socket.id,
       character: "",
       submitted: false,
       action: "",
       items: [],
       status: [],
+      connected: true,
     };
     joinedCode = code;
     socket.join(code);
@@ -288,6 +293,40 @@ io.on("connection", (socket) => {
     if (room.history.length) {
       socket.emit("historyDump", room.history, room.round);
     }
+    broadcastRoom(room);
+  });
+
+  // 断线重连:凭 clientId 认领回原座位
+  socket.on("rejoin", ({ code, clientId, name }, cb) => {
+    code = (code || "").toUpperCase().trim();
+    const room = rooms[code];
+    if (!room) return cb && cb({ ok: false, error: "房间已关闭" });
+    // 找到 clientId 对应的老玩家
+    let oldId = null;
+    for (const [id, p] of Object.entries(room.players)) {
+      if (p.clientId === clientId) { oldId = id; break; }
+    }
+    if (oldId) {
+      // 把老座位迁移到新 socket.id
+      const p = room.players[oldId];
+      if (p._graceTimer) { clearTimeout(p._graceTimer); p._graceTimer = null; }
+      p.connected = true;
+      delete room.players[oldId];
+      room.players[socket.id] = p;
+      if (room.hostId === oldId) room.hostId = socket.id; // 房主身份也迁移
+    } else {
+      // 找不到老座位(可能已被清理),当新玩家加入
+      room.players[socket.id] = {
+        name: name || "玩家",
+        clientId: clientId || socket.id,
+        character: "", submitted: false, action: "",
+        items: [], status: [], connected: true,
+      };
+    }
+    joinedCode = code;
+    socket.join(code);
+    cb && cb({ ok: true, code });
+    if (room.history.length) socket.emit("historyDump", room.history, room.round);
     broadcastRoom(room);
   });
 
@@ -460,18 +499,25 @@ io.on("connection", (socket) => {
   socket.on("disconnect", () => {
     const room = rooms[joinedCode];
     if (!room) return;
-    delete room.players[socket.id];
-    if (Object.keys(room.players).length === 0) {
-      // 空房间保留 30 分钟后清理
-      setTimeout(() => {
-        if (rooms[joinedCode] && Object.keys(rooms[joinedCode].players).length === 0)
-          delete rooms[joinedCode];
-      }, 30 * 60 * 1000);
-      return;
-    }
-    if (room.hostId === socket.id) {
-      room.hostId = Object.keys(room.players)[0]; // 转移房主
-    }
+    const p = room.players[socket.id];
+    if (!p) return;
+    // 不立刻删,给 90 秒重连宽限期,期间保留座位
+    p.connected = false;
+    const deadId = socket.id;
+    p._graceTimer = setTimeout(() => {
+      const r = rooms[joinedCode];
+      if (!r || !r.players[deadId]) return;
+      delete r.players[deadId];
+      if (Object.keys(r.players).length === 0) {
+        setTimeout(() => {
+          if (rooms[joinedCode] && Object.keys(rooms[joinedCode].players).length === 0)
+            delete rooms[joinedCode];
+        }, 30 * 60 * 1000);
+        return;
+      }
+      if (r.hostId === deadId) r.hostId = Object.keys(r.players)[0];
+      broadcastRoom(r);
+    }, 90 * 1000);
     broadcastRoom(room);
   });
 });

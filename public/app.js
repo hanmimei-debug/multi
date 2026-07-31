@@ -1,26 +1,48 @@
 const socket = io();
 let myCode = null;
 let myId = null;
+let myName = null;
 let room = null; // 最新房间视图
 
 const $ = (id) => document.getElementById(id);
+
+// 持久身份:重连/刷新后凭它认领回原座位
+function getClientId() {
+  let id;
+  try { id = localStorage.getItem("simClientId"); } catch {}
+  if (!id) {
+    id = "c" + Math.random().toString(36).slice(2) + Date.now().toString(36);
+    try { localStorage.setItem("simClientId", id); } catch {}
+  }
+  return id;
+}
+const clientId = getClientId();
+
+function saveSession() {
+  try {
+    localStorage.setItem("simSession", JSON.stringify({ code: myCode, name: myName }));
+  } catch {}
+}
+function clearSession() {
+  try { localStorage.removeItem("simSession"); } catch {}
+}
 
 socket.on("connect", () => { myId = socket.id; });
 
 // ---- 进入界面 ----
 $("btnCreate").onclick = () => {
-  const name = $("nick").value.trim() || "房主";
-  socket.emit("createRoom", { name }, (res) => {
-    if (res.ok) enterGame(res.code);
+  myName = $("nick").value.trim() || "房主";
+  socket.emit("createRoom", { name: myName, clientId }, (res) => {
+    if (res.ok) { enterGame(res.code); saveSession(); }
   });
 };
 
 $("btnJoin").onclick = () => {
-  const name = $("nick").value.trim() || "玩家";
+  myName = $("nick").value.trim() || "玩家";
   const code = $("joinCode").value.trim().toUpperCase();
   if (!code) return alert("请输入房间码");
-  socket.emit("joinRoom", { code, name }, (res) => {
-    if (res.ok) enterGame(res.code);
+  socket.emit("joinRoom", { code, name: myName, clientId }, (res) => {
+    if (res.ok) { enterGame(res.code); saveSession(); }
     else alert(res.error || "加入失败");
   });
 };
@@ -146,16 +168,35 @@ socket.on("room", (r) => {
 socket.on("errorMsg", (m) => addSys("⚠️ " + m));
 socket.on("sysMsg", (m) => addSys("✦ " + m));
 
-// 断线重连
+// 断线重连:凭 clientId 认领回原座位并补历史
 socket.on("disconnect", () => {
-  addSys("⚠️ 连接断开,正在重连...");
+  if (myCode) addSys("⚠️ 连接断开,正在自动重连...");
 });
 socket.on("connect", () => {
+  myId = socket.id;
   if (myCode) {
-    addSys("✦ 已重连");
-    socket.emit("refreshRoom", { code: myCode });
+    socket.emit("rejoin", { code: myCode, clientId, name: myName }, (res) => {
+      if (res && res.ok) addSys("✦ 已重连,继续游戏");
+      else { addSys("⚠️ 重连失败:" + (res && res.error || "房间已关闭")); }
+    });
   }
 });
+
+// 页面刚加载:如果本地存了上次的房间,自动尝试回到那局
+(function autoRejoin() {
+  let s;
+  try { s = JSON.parse(localStorage.getItem("simSession") || "null"); } catch {}
+  if (!s || !s.code) return;
+  myName = s.name;
+  const doRejoin = () => {
+    socket.emit("rejoin", { code: s.code, clientId, name: s.name }, (res) => {
+      if (res && res.ok) { enterGame(s.code); addSys("✦ 已回到房间 " + s.code); }
+      else { clearSession(); } // 房间没了就清掉,停在首页
+    });
+  };
+  if (socket.connected) doRejoin();
+  else socket.once("connect", doRejoin);
+})();
 
 // 新加入者补历史
 socket.on("historyDump", (history, round) => {
@@ -221,6 +262,7 @@ function renderPlayers() {
     card.className = "pcard";
     let badges = "";
     if (p.isHost) badges += '<span class="badge host">房主</span>';
+    if (p.connected === false) badges += '<span class="badge off">掉线中</span>';
     if (room.phase === "acting") {
       badges += p.submitted
         ? '<span class="badge ok">已提交</span>'
