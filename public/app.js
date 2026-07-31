@@ -59,6 +59,7 @@ $("closeSidebar").onclick = () => $("sidebar").classList.add("hidden");
 $("btnRefresh").onclick = () => {
   if (myCode) socket.emit("refreshRoom", { code: myCode });
 };
+$("btnReload").onclick = () => location.reload();
 
 // ---- 房主设置 ----
 $("apiTemp").oninput = (e) => ($("tempVal").textContent = e.target.value);
@@ -144,6 +145,17 @@ socket.on("room", (r) => {
 
 socket.on("errorMsg", (m) => addSys("⚠️ " + m));
 socket.on("sysMsg", (m) => addSys("✦ " + m));
+
+// 断线重连
+socket.on("disconnect", () => {
+  addSys("⚠️ 连接断开,正在重连...");
+});
+socket.on("connect", () => {
+  if (myCode) {
+    addSys("✦ 已重连");
+    socket.emit("refreshRoom", { code: myCode });
+  }
+});
 
 // 新加入者补历史
 socket.on("historyDump", (history, round) => {
