@@ -47,7 +47,10 @@
       <div id="playerList"></div>
       <div id="reactionLog" class="hidden"></div>
       <div id="hostPanel" class="hidden">
-        <h3>房主设置</h3>
+        <h3 style="cursor:pointer;" onclick="document.getElementById('hostConfig').classList.toggle('hidden')">
+          ⚙️ 房主设置 <span style="float:right;font-size:9px;">点击展开/收起</span>
+        </h3>
+        <div id="hostConfig" class="hidden">
         <label>API Base URL</label>
         <input id="apiBase" placeholder="https://api.deepseek.com/v1" />
         <label>API Key</label>
@@ -59,6 +62,7 @@
         <label>模拟器指令(系统提示词)</label>
         <textarea id="sysPrompt" rows="6" placeholder="把你的模拟器设定粘贴到这里..."></textarea>
         <button id="btnSaveCfg">保存设置</button>
+        </div>
         <button id="btnGenTpl">✎ 生成角色填空模板</button>
         <button id="btnStart" class="primary">开始游戏</button>
         <button id="btnForce" class="primary hidden">▶ 推进到下一回合</button>
