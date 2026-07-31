@@ -144,6 +144,8 @@ button.mini { padding: 6px 10px; font-size: 10px; letter-spacing: 1.5px; text-tr
   padding: 20px; overflow-y: auto; z-index: 20;
   display: flex; flex-direction: column; gap: 14px;
   box-shadow: -8px 0 30px rgba(240, 194, 209, 0.35);
+  /* 手机浏览器底部留空,让内容可滚动到 */
+  padding-bottom: max(80px, calc(20px + env(safe-area-inset-bottom, 0)));
 }
 #closeSidebar { align-self: flex-end; }
 #sidebar h3 {
@@ -209,8 +211,8 @@ button.mini { padding: 6px 10px; font-size: 10px; letter-spacing: 1.5px; text-tr
 #actionBar {
   background: var(--white); border-top: 1px solid var(--soft-pink);
   padding: 18px 20px; flex-shrink: 0; box-shadow: var(--shadow-subtle);
-  /* 为手机浏览器底部工具栏留出空间 */
-  padding-bottom: calc(18px + env(safe-area-inset-bottom, 0));
+  /* 为手机浏览器底部工具栏留出空间 - 固定 80px 兜底 */
+  padding-bottom: max(80px, calc(18px + env(safe-area-inset-bottom, 0)));
 }
 #actionBar > div { max-width: 720px; margin: 0 auto; display: flex; flex-direction: column; gap: 8px; }
 #actInput { flex-direction: row !important; align-items: flex-end; }
