@@ -1,0 +1,17 @@
+{
+  "name": "ai-multiplayer-sim",
+  "version": "1.0.0",
+  "description": "多人联机 AI 文字模拟器游戏",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "socket.io": "^4.7.5"
+  }
+}

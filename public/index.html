@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI 联机模拟器</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&family=Quicksand:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+</head>
+<body>
+  <!-- 进入界面 -->
+  <div id="entry" class="screen">
+    <button id="btnThemeEntry" class="theme-toggle mini">🌙 深夜</button>
+    <h1>♡ AI 联机模拟器 ♡</h1>
+    <p class="sub">和朋友一起写一场故事</p>
+    <div class="card">
+      <label>你的昵称</label>
+      <input id="nick" placeholder="给自己起个名字" maxlength="20" />
+      <button id="btnCreate" class="primary">创建房间</button>
+      <div class="divider">或</div>
+      <label>房间码</label>
+      <input id="joinCode" placeholder="6 位房间码" maxlength="6" style="text-transform:uppercase" />
+      <button id="btnJoin">加入房间</button>
+    </div>
+    <p class="note">提示:房间仅靠房间码进入,没有账号系统,别把码发到公开场合。</p>
+  </div>
+
+  <!-- 游戏界面 -->
+  <div id="game" class="screen hidden">
+    <header id="topbar">
+      <span id="roomInfo"></span>
+      <span id="roundInfo"></span>
+      <button id="btnTheme" class="mini">🌙 深夜</button>
+      <button id="btnPhone" class="mini">♡ 玩家</button>
+    </header>
+
+    <main id="story"></main>
+
+    <aside id="sidebar" class="hidden">
+      <button id="closeSidebar" class="mini">✕</button>
+      <div id="playerList"></div>
+      <div id="hostPanel" class="hidden">
+        <h3>房主设置</h3>
+        <label>API Base URL</label>
+        <input id="apiBase" placeholder="https://api.deepseek.com/v1" />
+        <label>API Key</label>
+        <input id="apiKey" type="password" placeholder="sk-..." />
+        <label>模型名</label>
+        <input id="apiModel" placeholder="deepseek-chat" />
+        <label>温度 (<span id="tempVal">0.8</span>)</label>
+        <input id="apiTemp" type="range" min="0" max="1.5" step="0.1" value="0.8" />
+        <label>模拟器指令(系统提示词)</label>
+        <textarea id="sysPrompt" rows="6" placeholder="把你的模拟器设定粘贴到这里..."></textarea>
+        <button id="btnSaveCfg">保存设置</button>
+        <button id="btnGenTpl">✎ 生成角色填空模板</button>
+        <button id="btnStart" class="primary">开始游戏</button>
+        <button id="btnForce" class="hidden">强制推进本回合</button>
+      </div>
+    </aside>
+
+    <footer id="actionBar">
+      <div id="charSetup" class="hidden">
+        <label>你的角色设定(开局前填写)</label>
+        <textarea id="charInput" rows="3" placeholder="姓名、身份、性格、背景..."></textarea>
+        <button id="btnSaveChar">保存我的角色</button>
+      </div>
+      <div id="actInput" class="hidden">
+        <textarea id="actText" rows="2" placeholder="输入你这一回合的行动 / 选择的选项..."></textarea>
+        <button id="btnSubmit" class="primary">提交行动</button>
+        <span id="submitHint"></span>
+      </div>
+      <div id="waitState" class="hidden">
+        <span id="waitHint">♡ 已提交,等其他人...</span>
+      </div>
+    </footer>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
