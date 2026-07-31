@@ -168,6 +168,29 @@ button.mini { padding: 6px 10px; font-size: 10px; letter-spacing: 1.5px; text-tr
   margin-top: 8px; padding-top: 8px; font-size: 11px;
   border-top: 1px solid var(--soft-pink); color: var(--rose);
 }
+.pitems, .pstatus { margin-top: 8px; font-size: 11px; line-height: 1.9; }
+.chip {
+  display: inline-block; padding: 1px 8px; margin: 1px;
+  background: var(--soft-pink); color: var(--rose);
+  border: 1px solid var(--pale-pink); border-radius: 0; font-size: 11px;
+}
+.chip.st { background: transparent; color: var(--mid-mauve); }
+.chip.give { cursor: pointer; }
+.chip.give:hover { background: var(--rose); color: var(--white); }
+.react-btn {
+  padding: 1px 8px; font-size: 10px; margin-left: 4px;
+  border: 1px solid var(--pale-pink); color: var(--rose);
+}
+#reactionLog {
+  background: var(--white); border: 1px solid var(--soft-pink);
+  padding: 12px; box-shadow: var(--shadow-subtle);
+}
+.rx-title {
+  font-family: var(--font-title); color: var(--rose);
+  font-size: 12px; margin-bottom: 6px; letter-spacing: 1px;
+}
+.rx-item { font-size: 11px; color: var(--mid-mauve); line-height: 1.8; }
+.rx-item b { color: var(--deep-mauve); }
 .pcard .badge {
   font-size: 9px; padding: 1px 7px; border-radius: 0; margin-left: 6px;
   letter-spacing: 1px; text-transform: uppercase; border: 1px solid transparent;

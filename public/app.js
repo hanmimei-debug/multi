@@ -198,8 +198,39 @@ function renderPlayers() {
         ? '<span class="badge ok">已提交</span>'
         : '<span class="badge wait">等待</span>';
     }
-    const me = p.id === myId ? " (我)" : "";
+    const isMe = p.id === myId;
+    const me = isMe ? " (我)" : "";
     const av = avatar(p.name);
+    // 物品:自己的物品带"给"按钮
+    let itemsHtml = "";
+    if ((p.items || []).length) {
+      itemsHtml =
+        `<div class="pitems">🎒 ` +
+        p.items
+          .map((it) =>
+            isMe
+              ? `<span class="chip give" data-item="${escapeHtml(it)}">${escapeHtml(it)} ⇄</span>`
+              : `<span class="chip">${escapeHtml(it)}</span>`
+          )
+          .join(" ") +
+        `</div>`;
+    }
+    let statusHtml = "";
+    if ((p.status || []).length) {
+      statusHtml =
+        `<div class="pstatus">✧ ` +
+        p.status.map((s) => `<span class="chip st">${escapeHtml(s)}</span>`).join(" ") +
+        `</div>`;
+    }
+    // 别人已提交的行动:acting 阶段可"回应"
+    let actionHtml = "";
+    if (p.submitted && p.action) {
+      actionHtml = `<div class="paction">♡ ${escapeHtml(p.action)}`;
+      if (!isMe && room.phase === "acting") {
+        actionHtml += ` <button class="react-btn mini" data-id="${p.id}" data-name="${escapeHtml(p.name)}">↩ 回应</button>`;
+      }
+      actionHtml += `</div>`;
+    }
     card.innerHTML =
       `<div class="pcard-head">` +
       `<span class="avatar" style="background:${av.bg};color:${av.fg}">${av.ch}</span>` +
@@ -207,9 +238,45 @@ function renderPlayers() {
       `<div class="pname">${escapeHtml(p.name)}${me}${badges}</div>` +
       (p.character ? `<div class="pchar">${escapeHtml(p.character.split("\n")[0])}</div>` : "") +
       `</div></div>` +
-      (p.submitted && p.action ? `<div class="paction">♡ ${escapeHtml(p.action)}</div>` : "");
+      itemsHtml + statusHtml + actionHtml;
     list.appendChild(card);
   }
+  bindCardButtons();
+  renderReactions();
+}
+
+// 绑定卡片上的"回应""给物品"按钮
+function bindCardButtons() {
+  document.querySelectorAll(".react-btn").forEach((b) => {
+    b.onclick = () => {
+      const text = prompt(`回应「${b.dataset.name}」的行动:`);
+      if (text && text.trim())
+        socket.emit("react", { code: myCode, targetId: b.dataset.id, text: text.trim() });
+    };
+  });
+  document.querySelectorAll(".chip.give").forEach((c) => {
+    c.onclick = () => {
+      const others = room.players.filter((p) => p.id !== myId);
+      if (!others.length) return alert("暂时没有其他玩家可以给。");
+      const names = others.map((p, i) => `${i + 1}. ${p.name}`).join("\n");
+      const pick = prompt(`把【${c.dataset.item}】给谁?输入编号:\n${names}`);
+      const idx = parseInt(pick, 10) - 1;
+      if (others[idx])
+        socket.emit("giveItem", { code: myCode, toId: others[idx].id, item: c.dataset.item });
+    };
+  });
+}
+
+// 渲染本回合的相互回应记录
+function renderReactions() {
+  const box = $("reactionLog");
+  if (!box) return;
+  const rx = room.reactions || [];
+  if (!rx.length) { box.classList.add("hidden"); box.innerHTML = ""; return; }
+  box.classList.remove("hidden");
+  box.innerHTML =
+    `<div class="rx-title">✧ 本回合互动</div>` +
+    rx.map((r) => `<div class="rx-item"><b>${escapeHtml(r.from)}</b> → <b>${escapeHtml(r.to)}</b>:${escapeHtml(r.text)}</div>`).join("");
 }
 
 // ---- 控件状态 ----
@@ -238,8 +305,8 @@ function updateControls() {
     $("submitHint").textContent = `已提交 ${done}/${total}`;
     $("waitHint").textContent =
       done >= total
-        ? "♡ 全员已提交,AI 正在续写..."
-        : `♡ 已提交,等其他人... (${done}/${total})`;
+        ? "♡ 全员已提交,可点开玩家互相回应,等房主推进"
+        : `♡ 已提交,可回应他人,等其他人... (${done}/${total})`;
   }
 }
 
