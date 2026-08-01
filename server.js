@@ -16,6 +16,9 @@ const PORT = process.env.PORT || 3000;
 const SAVE_DIR = join(__dirname, "saves");
 if (!fs.existsSync(SAVE_DIR)) fs.mkdirSync(SAVE_DIR, { recursive: true });
 
+const GIST_TOKEN = process.env.GIST_TOKEN || "";
+let GIST_ID = process.env.GIST_ID || "09ef7debabc8a9c580a2f5b25323614a"; // 首次自动创建后的固定ID
+
 // ---- 房间状态 ----
 // rooms[code] = {
 //   code, hostId, api:{baseUrl,key,model,temperature},
@@ -63,24 +66,97 @@ function broadcastRoom(room) {
 }
 
 function saveFile(room) {
+  const data = {
+    code: room.code,
+    api: room.api,
+    systemPrompt: room.systemPrompt,
+    history: room.history,
+    round: room.round,
+    phase: room.phase,
+    charTemplate: room.charTemplate,
+  };
+  // 本地备份
   try {
     const path = join(SAVE_DIR, `${room.code}.json`);
-    fs.writeFileSync(
-      path,
-      JSON.stringify(
-        {
-          systemPrompt: room.systemPrompt,
-          history: room.history,
-          round: room.round,
-        },
-        null,
-        2
-      )
-    );
+    fs.writeFileSync(path, JSON.stringify(data, null, 2));
   } catch (e) {
-    console.error("存档失败", e.message);
+    console.error("本地存档失败", e.message);
+  }
+  // 云存档到 Gist(异步,不阻塞)
+  saveToGist(room.code, data).catch((e) => console.error("Gist存档失败", e.message));
+}
+
+async function saveToGist(code, data) {
+  if (!GIST_TOKEN) return;
+  const filename = `room_${code}.json`;
+  const content = JSON.stringify(data, null, 2);
+  if (!GIST_ID) {
+    // 首次:创建新 Gist
+    const res = await fetch("https://api.github.com/gists", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${GIST_TOKEN}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        description: "AI multiplayer sim save files",
+        public: false,
+        files: { [filename]: { content } },
+      }),
+    });
+    if (!res.ok) throw new Error(`Gist create failed: ${res.status}`);
+    const gist = await res.json();
+    GIST_ID = gist.id;
+    console.log(`✓ Gist 已创建,ID=${GIST_ID} (请设置环境变量 GIST_ID=${GIST_ID} 以加速后续启动)`);
+  } else {
+    // 更新已有 Gist
+    const res = await fetch(`https://api.github.com/gists/${GIST_ID}`, {
+      method: "PATCH",
+      headers: { Authorization: `Bearer ${GIST_TOKEN}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ files: { [filename]: { content } } }),
+    });
+    if (!res.ok) throw new Error(`Gist update failed: ${res.status}`);
   }
 }
+
+async function loadFromGist() {
+  if (!GIST_TOKEN || !GIST_ID) return;
+  try {
+    const res = await fetch(`https://api.github.com/gists/${GIST_ID}`, {
+      headers: { Authorization: `Bearer ${GIST_TOKEN}` },
+    });
+    if (!res.ok) return;
+    const gist = await res.json();
+    let count = 0;
+    for (const [filename, file] of Object.entries(gist.files || {})) {
+      if (!filename.startsWith("room_")) continue;
+      try {
+        const data = JSON.parse(file.content);
+        if (!data.code || rooms[data.code]) continue; // 跳过已存在的
+        rooms[data.code] = {
+          code: data.code,
+          hostId: null, // 房主会在重连时设置
+          api: data.api || { baseUrl: "", key: "", model: "", temperature: 0.8 },
+          systemPrompt: data.systemPrompt || "",
+          players: {},
+          history: data.history || [],
+          round: data.round || 0,
+          phase: data.phase || "lobby",
+          generating: false,
+          reactions: [],
+          transfers: [],
+          charTemplate: data.charTemplate || "",
+        };
+        count++;
+      } catch {}
+    }
+    if (count) console.log(`✓ 从 Gist 恢复了 ${count} 个房间`);
+  } catch (e) {
+    console.error("Gist 加载失败", e.message);
+  }
+}
+
+// ---- 启动时从云端加载存档 ----
+loadFromGist().then(() => {
+  console.log(`已加载 ${Object.keys(rooms).length} 个房间`);
+});
 
 // 把用户填的 base_url 规整成 .../chat/completions,尽量宽容各种填法
 function buildEndpoint(baseUrl) {
