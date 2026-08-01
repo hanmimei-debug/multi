@@ -1,27 +1,29 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
 :root, [data-theme="day"] {
-  --blush-bg: #fbf6f8;
+  --blush-bg: linear-gradient(135deg, #fbf6f8 0%, #fef0f5 40%, #fff5f8 100%);
   --white: #ffffff;
   --deep-mauve: #3b2f33;
   --mid-mauve: #5a4a4f;
   --rose: #b86b82;
   --pale-pink: #f0c2d1;
   --soft-pink: #f2d7df;
-  --shadow-subtle: 0 6px 18px rgba(0, 0, 0, 0.04);
-  --shadow-glow: 0 12px 30px rgba(240, 194, 209, 0.35);
-  --shadow-medium: 0 18px 45px rgba(0, 0, 0, 0.08);
+  --shadow-subtle: 0 6px 20px rgba(184, 107, 130, 0.12);
+  --shadow-glow: 0 12px 36px rgba(240, 194, 209, 0.35);
+  --shadow-medium: 0 18px 50px rgba(184, 107, 130, 0.15);
+  --glass: rgba(255, 255, 255, 0.7);
 }
 [data-theme="night"] {
-  --blush-bg: #1c1420;      /* 深茄紫夜色 */
-  --white: #2a1f30;         /* 卡片面 */
-  --deep-mauve: #f3e3ec;    /* 主文字(浅粉白) */
-  --mid-mauve: #c9a9ba;     /* 次文字 */
-  --rose: #f2a0bd;          /* 玫瑰粉强调,夜里更亮 */
-  --pale-pink: #6b4a5c;     /* 描边 */
-  --soft-pink: #3d2c3c;     /* 淡描边/分隔 */
-  --shadow-subtle: 0 6px 18px rgba(0, 0, 0, 0.35);
-  --shadow-glow: 0 12px 30px rgba(242, 160, 189, 0.20);
-  --shadow-medium: 0 18px 45px rgba(0, 0, 0, 0.45);
+  --blush-bg: linear-gradient(135deg, #1c1420 0%, #251828 40%, #2a1f30 100%);
+  --white: #2a1f30;
+  --deep-mauve: #f3e3ec;
+  --mid-mauve: #c9a9ba;
+  --rose: #f2a0bd;
+  --pale-pink: #6b4a5c;
+  --soft-pink: #3d2c3c;
+  --shadow-subtle: 0 6px 20px rgba(0, 0, 0, 0.4);
+  --shadow-glow: 0 12px 36px rgba(242, 160, 189, 0.25);
+  --shadow-medium: 0 18px 50px rgba(0, 0, 0, 0.5);
+  --glass: rgba(42, 31, 48, 0.7);
 }
 /* 可爱字体:中文用「站酷快乐体」,拉丁字符用圆润的 Quicksand */
 :root {
@@ -46,29 +48,74 @@ label {
   color: var(--deep-mauve); margin-top: 8px; display: block;
 }
 input, textarea, select {
-  background: var(--white); border: 1px solid var(--soft-pink);
-  color: var(--deep-mauve); border-radius: 0;
-  padding: 10px 12px; font-size: 13px; font-family: var(--font-cute);
-  width: 100%; resize: vertical; line-height: 1.6;
+  background: var(--white);
+  border: 1px solid var(--soft-pink);
+  color: var(--deep-mauve);
+  border-radius: 12px;
+  padding: 10px 14px;
+  font-size: 13px;
+  font-family: var(--font-cute);
+  width: 100%;
+  resize: vertical;
+  line-height: 1.6;
+  transition: all 0.3s ease;
 }
 input:focus, textarea:focus {
-  outline: 2px solid var(--pale-pink); outline-offset: 0;
-  border-color: var(--pale-pink);
+  outline: none;
+  border-color: var(--rose);
+  box-shadow: 0 0 0 3px rgba(184, 107, 130, 0.15);
 }
 input[type="range"] { accent-color: var(--rose); border: none; padding: 4px 0; }
 
 button {
   background: transparent; color: var(--rose);
-  border: 1px solid var(--pale-pink); border-radius: 0;
-  padding: 9px 14px; font-size: 12px; font-family: var(--font-cute); font-weight: 500;
-  letter-spacing: 1px; cursor: pointer; transition: background .2s, color .2s;
+  border: 1px solid var(--pale-pink);
+  border-radius: 12px;
+  padding: 10px 16px;
+  font-size: 12px;
+  font-family: var(--font-cute);
+  font-weight: 500;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
 }
-button:hover { background: var(--soft-pink); color: var(--deep-mauve); }
+button::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: var(--soft-pink);
+  transform: translate(-50%, -50%);
+  transition: width 0.6s, height 0.6s;
+  z-index: -1;
+}
+button:hover::before {
+  width: 300px;
+  height: 300px;
+}
+button:hover {
+  color: var(--deep-mauve);
+  box-shadow: var(--shadow-subtle);
+}
 button.primary {
-  background: var(--rose); color: var(--white);
-  border: 1px solid var(--rose); letter-spacing: 1.5px;
+  background: var(--rose);
+  color: var(--white);
+  border: 1px solid var(--rose);
+  letter-spacing: 1.5px;
+  box-shadow: var(--shadow-subtle);
 }
-button.primary:hover { background: var(--deep-mauve); border-color: var(--deep-mauve); }
+button.primary::before {
+  background: var(--deep-mauve);
+}
+button.primary:hover {
+  box-shadow: var(--shadow-glow);
+  transform: translateY(-2px);
+}
 button.mini { padding: 6px 10px; font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; }
 
 /* 进入界面 */
@@ -83,10 +130,23 @@ button.mini { padding: 6px 10px; font-size: 10px; letter-spacing: 1.5px; text-tr
 .sub::before { content: "✧ "; color: var(--rose); }
 .sub::after { content: " ✧"; color: var(--rose); }
 .card {
-  background: var(--white); border: 1px solid var(--soft-pink);
-  border-radius: 0; padding: 30px; width: 100%; max-width: 380px;
-  display: flex; flex-direction: column; gap: 8px;
-  box-shadow: var(--shadow-subtle);
+  background: var(--glass);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid var(--soft-pink);
+  border-radius: 16px;
+  padding: 30px;
+  width: 100%;
+  max-width: 380px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-shadow: var(--shadow-medium);
+  transition: all 0.3s ease;
+}
+.card:hover {
+  box-shadow: var(--shadow-glow);
+  transform: translateY(-2px);
 }
 .divider {
   text-align: center; color: var(--rose); font-size: 12px; margin: 10px 0;
@@ -140,10 +200,13 @@ button.mini { padding: 6px 10px; font-size: 10px; letter-spacing: 1.5px; text-tr
 /* 侧栏 */
 #sidebar {
   position: fixed; right: 0; top: 0; height: 100vh; width: 340px; max-width: 90vw;
-  background: var(--blush-bg); border-left: 1px solid var(--soft-pink);
+  background: var(--glass);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border-left: 1px solid var(--soft-pink);
   padding: 20px; overflow-y: auto; z-index: 20;
   display: flex; flex-direction: column; gap: 14px;
-  box-shadow: -8px 0 30px rgba(240, 194, 209, 0.35);
+  box-shadow: -12px 0 40px rgba(184, 107, 130, 0.25);
   /* 手机浏览器底部留空,让内容可滚动到 */
   padding-bottom: max(80px, calc(20px + env(safe-area-inset-bottom, 0)));
 }
@@ -154,9 +217,19 @@ button.mini { padding: 6px 10px; font-size: 10px; letter-spacing: 1.5px; text-tr
 }
 #sidebar h3::before { content: "♡ "; color: var(--rose); }
 .pcard {
-  background: var(--white); border: 1px solid var(--soft-pink);
-  border-radius: 0; padding: 14px; font-size: 12px;
-  color: var(--mid-mauve); line-height: 1.8; box-shadow: var(--shadow-subtle);
+  background: var(--white);
+  border: 1px solid var(--soft-pink);
+  border-radius: 12px;
+  padding: 14px;
+  font-size: 12px;
+  color: var(--mid-mauve);
+  line-height: 1.8;
+  box-shadow: var(--shadow-subtle);
+  transition: all 0.3s ease;
+}
+.pcard:hover {
+  box-shadow: var(--shadow-glow);
+  transform: translateY(-2px);
 }
 .pcard-head { display: flex; align-items: center; gap: 12px; }
 .pcard-body { flex: 1; min-width: 0; }

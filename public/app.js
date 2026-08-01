@@ -182,20 +182,24 @@ socket.on("connect", () => {
   }
 });
 
-// 页面刚加载:如果本地存了上次的房间,自动尝试回到那局
-(function autoRejoin() {
+// 页面刚加载:检查是否有上次的房间,显示"继续"按钮(不自动进)
+(function checkLastSession() {
   let s;
   try { s = JSON.parse(localStorage.getItem("simSession") || "null"); } catch {}
   if (!s || !s.code) return;
-  myName = s.name;
-  const doRejoin = () => {
+  const btn = $("btnResume");
+  btn.classList.remove("hidden");
+  btn.onclick = () => {
+    myName = s.name;
     socket.emit("rejoin", { code: s.code, clientId, name: s.name }, (res) => {
       if (res && res.ok) { enterGame(s.code); addSys("✦ 已回到房间 " + s.code); }
-      else { clearSession(); } // 房间没了就清掉,停在首页
+      else {
+        alert("上次的房间已关闭或过期");
+        clearSession();
+        btn.classList.add("hidden");
+      }
     });
   };
-  if (socket.connected) doRejoin();
-  else socket.once("connect", doRejoin);
 })();
 
 // 新加入者补历史
